@@ -7,10 +7,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # --- IN-MEMORY USER BALANCES ---
-# Dictionary to store user tokens: {user_id: balance}
 user_balances = {}
-# Active game state tracker to manage bets per chat
-active_games = {}
 
 def get_balance(user_id):
     if user_id not in user_balances:
@@ -51,7 +48,7 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     balance = get_balance(user_id)
 
-    # Check if user specified a bet amount (e.g., /rocket 500)
+    # Check bet amount argument (e.g. /rocket 500)
     if context.args:
         try:
             bet_amount = int(context.args[0])
@@ -65,7 +62,6 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Please enter a valid number, e.g., `/rocket 500`", parse_mode="HTML")
             return
     else:
-        # Default bet if none specified
         bet_amount = 500
         if balance < bet_amount:
             bet_amount = balance
@@ -99,17 +95,7 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     crash_point = round(random.uniform(1.20, 15.00), 2)
     current_multiplier = 1.00
     game_active = True
-    user_claimed = False
 
-    # Store game session for button callback
-    active_games[msg.message_id] = {
-        "user_id": user_id,
-        "bet": bet_amount,
-        "get_active": lambda: game_active,
-        "claim": lambda: setattr(sys_obj, 'claimed', True) # handled inline below
-    }
-
-    # Custom object to track claim status inside closure
     class GameState:
         claimed = False
         cashed_out_at = 0.0
@@ -131,7 +117,6 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await query.answer("❌ This isn't your rocket game session!", show_alert=True)
 
-    # Register temporary callback handler for this specific game message
     handler = CallbackQueryHandler(check_claim_callback, pattern="claim_bag")
     context.application.add_handler(handler)
 
@@ -156,3 +141,9 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
+        except Exception:
+            pass
+
+    game_active = false_val = False
+    
+    # Clean
