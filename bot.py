@@ -31,8 +31,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 The ultimate degen ecosystem with smooth visual mini-apps.
 Tap below to open the live visual rocket game!"""
     
-    # Verified GitHub Pages deployment URL[span_1](start_span)[span_1](end_span)
-    webapp_url = "https://ewanh275-art.github.io/Kote-crash/"
+    # Added ?v=2 to force Telegram's cache to refresh
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/?v=2"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🎮 Open Visual Rocket Game 🚀", web_app=WebAppInfo(url=webapp_url))]
@@ -41,7 +41,7 @@ Tap below to open the live visual rocket game!"""
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    webapp_url = "https://ewanh275-art.github.io/Kote-crash/[span_2](start_span)"[span_2](end_span)
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/?v=2"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 Launch Visual Crash Game", web_app=WebAppInfo(url=webapp_url))]
