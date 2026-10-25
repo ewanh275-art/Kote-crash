@@ -31,8 +31,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 The ultimate degen ecosystem with smooth visual mini-apps.
 Tap below to open the live visual rocket game!"""
     
-    # Replace with your actual GitHub Pages URL from Step 2
-    webapp_url = "https://yourusername.github.io/kote-cat-bot/"
+    # Verified GitHub Pages deployment URL[span_1](start_span)[span_1](end_span)
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🎮 Open Visual Rocket Game 🚀", web_app=WebAppInfo(url=webapp_url))]
@@ -41,7 +41,7 @@ Tap below to open the live visual rocket game!"""
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    webapp_url = "https://yourusername.github.io/kote-cat-bot/"
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/[span_2](start_span)"[span_2](end_span)
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 Launch Visual Crash Game", web_app=WebAppInfo(url=webapp_url))]
