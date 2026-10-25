@@ -8,13 +8,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Setup detailed logging
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- IN-MEMORY DATA STORES ---
 user_balances = {}
-active_games = {}  # {user_id: {"bet": int, "mult": float, "claimed": bool, "active": bool, "msg_id": int}}
+active_games = {}
 
 def get_balance(user_id):
     if user_id not in user_balances:
@@ -35,10 +34,10 @@ def run_server():
     try:
         port = int(os.environ.get("PORT", 10000))
         server = HTTPServer(("0.0.0.0", port), HealthHandler)
-        logger.info(f"Health server successfully bound to port {port}")
+        logger.info(f"Health server bound to port {port}")
         server.serve_forever()
     except Exception as e:
-        logger.error(f"Health server failed to start: {e}")
+        logger.error(f"Health server failed: {e}")
 
 # --- 2. TELEGRAM BOT COMMAND HANDLERS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,10 +61,12 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     balance = get_balance(user_id)
 
+    # Prevent concurrent games per user
     if user_id in active_games and active_games[user_id].get("active"):
         await update.message.reply_text("⚠️ You already have an active rocket launch in progress!")
         return
 
+    # Parse bet amount
     if context.args:
         try:
             bet_amount = int(context.args[0])
@@ -87,6 +88,7 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Insufficient tokens to place bet!")
         return
 
+    # Deduct bet
     user_balances[user_id] -= bet_amount
     
     msg = await update.message.reply_text(
@@ -98,18 +100,21 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+    # Initialize active session state
     active_games[user_id] = {
         "bet": bet_amount,
         "mult": 1.00,
         "claimed": False,
         "cashed_at": 0.0,
         "active": True,
-        "msg": msg
+        "msg_id": msg.message_id
     }
 
-    # 10-Second Countdown Phase
+    # 10-Second Lobby Countdown
     for remaining in range(10, 0, -2):
         await asyncio.sleep(2)
+        if active_games[user_id]["claimed"]:
+            break
         try:
             await msg.edit_text(
                 f"""🚀 <b>Kote Crash Lobby Open!</b>
@@ -123,28 +128,34 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     # --- WEIGHTED CRASH ALGORITHM ---
-    # 40% chance of early rug (1.00x - 2.00x)
-    # 40% chance of mid climb (2.01x - 5.00x)
-    # 20% chance of degen moon (5.01x - 15.00x)
+    # 45% Chance: Early Rug (1.00x - 1.99x)
+    # 40% Chance: Mid Range (2.00x - 4.99x)
+    # 15% Chance: Degen Moon (5.00x - 15.00x)
     roll = random.random()
-    if roll < 0.40:
-        crash_point = round(random.uniform(1.00, 2.00), 2)
-    elif roll < 0.80:
-        crash_point = round(random.uniform(2.01, 5.00), 2)
+    if roll < 0.45:
+        crash_point = round(random.uniform(1.00, 1.99), 2)
+    elif roll < 0.85:
+        crash_point = round(random.uniform(2.00, 4.99), 2)
     else:
-        crash_point = round(random.uniform(5.01, 15.00), 2)
+        crash_point = round(random.uniform(5.00, 15.00), 2)
 
     current_multiplier = 1.00
-
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 CLAIM BAG! 💰", callback_data=f"claim_{user_id}")]
     ])
 
-    # Climbing loop
-    while current_multiplier < crash_point and active_games[user_id]["active"] and not active_games[user_id]["claimed"]:
-        await asyncio.sleep(0.7)
-        current_multiplier = round(current_multiplier + random.uniform(0.10, 0.35), 2)
+    # Rocket Climb Loop
+    while current_multiplier < crash_point:
+        # Exit immediately if the user claimed via callback
+        if active_games[user_id]["claimed"]:
+            break
+
+        await asyncio.sleep(0.9)  # Smooth update pacing to avoid Telegram rate limits
         
+        if active_games[user_id]["claimed"]:
+            break
+
+        current_multiplier = round(current_multiplier + random.uniform(0.15, 0.40), 2)
         if current_multiplier >= crash_point:
             current_multiplier = crash_point
             break
@@ -164,13 +175,12 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    game_session = active_games.get(user_id)
-    if not game_session:
-        return
-
-    # If game ended naturally without being claimed
-    if game_session["active"] and not game_session["claimed"]:
-        game_session["active"] = False
+    # Mark loop ended
+    session = active_games[user_id]
+    
+    # If not claimed, handle crash result
+    if not session["claimed"]:
+        session["active"] = False
         new_bal = get_balance(user_id)
         try:
             await msg.edit_text(
@@ -204,7 +214,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         session = active_games.get(clicker_id)
-        if session and session["active"] and not session["claimed"]:
+        
+        # Check active state instantly
+        if session and session.get("active") and not session.get("claimed"):
+            # 1. LOCK STATE IMMEDIATELY IN MEMORY
             session["claimed"] = True
             session["active"] = False
             session["cashed_at"] = session["mult"]
@@ -215,24 +228,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_balances[clicker_id] += winnings
             new_bal = get_balance(clicker_id)
 
-            await query.answer(f"🎉 Bag Secured! Won {winnings:,} tokens at {multiplier:.2f}x!", show_alert=True)
+            # 2. INSTANT POPUP NOTIFICATION TO USER TELEGRAM CLIENT
+            await query.answer(f"🎉 BAG SECURED! Won {winnings:,} tokens at {multiplier:.2f}x!", show_alert=True)
 
-            # Instantly update the message on screen
+            # 3. UPDATE CHAT MESSAGE WITH FINAL SCORE
             try:
-                msg = session.get("msg")
-                if msg:
-                    await msg.edit_text(
-                        f"""🎉 <b>SUCCESS! Secured the Bag!</b>
+                await query.edit_message_text(
+                    f"""🎉 <b>SUCCESS! Secured the Bag!</b>
 
 📈 Cashed out at: <b>{multiplier:.2f}x</b>
 💰 Won: <b>+{winnings:,} Tokens</b>
 🏦 New Balance: <b>{new_bal:,} Tokens</b>
 
 <i>Type /rocket [amount] to play again!</i>""",
-                        parse_mode="HTML"
-                    )
+                    parse_mode="HTML"
+                )
             except Exception as e:
-                logger.error(f"Error updating message on claim: {e}")
+                logger.error(f"Error editing message on claim: {e}")
         else:
             await query.answer("❌ Game already ended or claimed!", show_alert=True)
 
