@@ -145,8 +145,8 @@
             transition: transform 0.15s ease-out;
         }
         .rocket-svg-container {
-            width: 160px;
-            height: 160px;
+            width: 170px;
+            height: 170px;
             filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.5));
         }
 
@@ -273,23 +273,27 @@
     <div class="game-screen" id="gameScreen">
         <div class="space-bg" id="spaceBg"></div>
         
+        <!-- Active Real Players Lobby -->
         <div class="players-lobby">
-            <div class="lobby-title">👥 Bets placed for this round:</div>
+            <div class="lobby-title">👥 Active Players in Round:</div>
             <div id="lobbyList">
-                <div class="lobby-player"><span>Waiting for bets...</span><span>-</span></div>
+                <div class="lobby-player"><span>No bets placed yet</span><span>-</span></div>
             </div>
         </div>
 
         <div class="multiplier-display" id="multDisplay">1.00x</div>
         <div class="status-text" id="statusText">Next round starts in 10s... Place your bet!</div>
 
+        <!-- Rocket with your exact cat.png image embedded -->
         <div class="rocket-flight-zone" id="rocketZone">
             <svg class="rocket-svg-container" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- Flames -->
                 <g id="flames" style="display: none;">
                     <path d="M120,230 L150,300 L180,230 Z" fill="#ef4444"/>
                     <path d="M130,235 L150,280 L170,235 Z" fill="#f97316"/>
                     <path d="M140,240 L150,260 L160,240 Z" fill="#facc15"/>
                 </g>
+                <!-- Rocket Body -->
                 <path d="M150,40 C190,90 190,180 170,220 L130,220 C110,180 110,90 150,40 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="3"/>
                 <ellipse cx="150" cy="45" rx="15" ry="10" fill="#e2e8f0"/>
                 <path d="M115,180 L80,210 L115,220 Z" fill="#64748b"/>
@@ -297,18 +301,9 @@
                 <rect x="125" y="110" width="50" height="30" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
                 <text x="150" y="131" font-size="16" font-weight="900" fill="#38bdf8" text-anchor="middle">0x0</text>
                 <text x="150" y="85" font-size="9" font-weight="bold" fill="#475569" text-anchor="middle" transform="rotate(90, 150, 85)">KOTE ROCKET</text>
-                <g transform="translate(100, 70)">
-                    <ellipse cx="50" cy="45" rx="35" ry="26" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
-                    <path d="M35,25 L40,35 M50,23 L52,34 M65,26 L60,35" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="72" cy="30" r="18" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
-                    <polygon points="60,18 64,5 71,17" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
-                    <polygon points="76,17 83,5 86,18" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
-                    <ellipse cx="68" cy="27" rx="3" ry="4" fill="#0f172a"/>
-                    <text x="73" y="30" font-size="8" font-weight="bold" fill="#0f172a">.</text>
-                    <ellipse cx="79" cy="27" rx="3" ry="4" fill="#0f172a"/>
-                    <path d="M15,45 C5,40 10,20 20,25" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-                    <path d="M15,45 C5,40 10,20 20,25" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="3,3" stroke-linecap="round"/>
-                </g>
+                
+                <!-- YOUR EXACT CAT IMAGE (cat.png) RIDING ON THE ROCKET -->
+                <image href="cat.png" x="105" y="15" width="90" height="90" preserveAspectRatio="xMidYMid meet"/>
             </svg>
         </div>
     </div>
@@ -327,236 +322,7 @@
     </div>
 
     <script>
-        // Safe Telegram WebApp Initialization with Fallback
+        // Safe Telegram WebApp Initialization
         const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
         if (tg && typeof tg.expand === 'function') {
-            tg.expand();
-        }
-
-        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) ? tg.initDataUnsafe.user.first_name : "KoteCadet";
-
-        let balance = 10000;
-        let currentBet = 100;
-        let gameState = 'WAITING';
-        let multiplier = 1.00;
-        let crashAt = 1.00;
-        let countdown = 10;
-        let timerInterval = null;
-        let gameInterval = null;
-        let flightHeight = 0;
-        let hasPlacedBet = false;
-
-        const balanceEl = document.getElementById('balance');
-        const betInput = document.getElementById('betInput');
-        const multDisplay = document.getElementById('multDisplay');
-        const statusText = document.getElementById('statusText');
-        const actionBtn = document.getElementById('actionBtn');
-        const rocketZone = document.getElementById('rocketZone');
-        const spaceBg = document.getElementById('spaceBg');
-        const flames = document.getElementById('flames');
-        const gameScreen = document.getElementById('gameScreen');
-        const lbPanel = document.getElementById('lbPanel');
-        const lbList = document.getElementById('lbList');
-        const lobbyList = document.getElementById('lobbyList');
-
-        let activePlayers = [];
-        let leaderboard = [];
-        try {
-            leaderboard = JSON.parse(localStorage.getItem('kote_lb')) || [
-                { name: "CryptoCat 🐱", score: "8.45x" },
-                { name: "MoonWhale 🚀", score: "5.20x" },
-                { name: "DegenApe", score: "3.90x" }
-            ];
-        } catch (e) {
-            leaderboard = [{ name: "CryptoCat 🐱", score: "8.45x" }];
-        }
-
-        function switchTab(tab) {
-            if (tab === 'game') {
-                gameScreen.style.display = 'flex';
-                lbPanel.classList.remove('open');
-                document.getElementById('gameTabBtn').classList.add('active');
-                document.getElementById('lbTabBtn').classList.remove('active');
-            } else {
-                gameScreen.style.display = 'none';
-                lbPanel.classList.add('open');
-                document.getElementById('lbTabBtn').classList.add('active');
-                document.getElementById('gameTabBtn').classList.remove('active');
-                renderLeaderboard();
-            }
-        }
-
-        function renderLeaderboard() {
-            lbList.innerHTML = '';
-            leaderboard.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
-            leaderboard.forEach((item, index) => {
-                lbList.innerHTML += `
-                    <div class="lb-item">
-                        <div class="lb-rank">#${index + 1}</div>
-                        <div class="lb-name">${item.name}</div>
-                        <div class="lb-score">${item.score}</div>
-                    </div>
-                `;
-            });
-        }
-
-        function startLobbyCountdown() {
-            gameState = 'WAITING';
-            countdown = 10;
-            hasPlacedBet = false;
-            multiplier = 1.00;
-            multDisplay.innerText = "1.00x";
-            multDisplay.style.color = "#22c55e";
-            actionBtn.innerText = "PLACE BET FOR NEXT ROUND 🚀";
-            actionBtn.className = "action-btn";
-            betInput.disabled = false;
-
-            activePlayers = [
-                { name: "MoonWhale 🚀", bet: Math.floor(Math.random() * 500 + 50) },
-                { name: "DegenApe", bet: Math.floor(Math.random() * 300 + 20) }
-            ];
-            updateLobbyUI();
-
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                countdown--;
-                if (countdown > 0) {
-                    statusText.innerText = `Next round starts in ${countdown}s... Place your bet!`;
-                } else {
-                    clearInterval(timerInterval);
-                    launchFlight();
-                }
-            }, 1000);
-        }
-
-        function updateLobbyUI() {
-            lobbyList.innerHTML = '';
-            activePlayers.forEach(p => {
-                lobbyList.innerHTML += `<div class="lobby-player"><span>${p.name}</span><span>${p.bet} tokens</span></div>`;
-            });
-            if (activePlayers.length === 0) {
-                lobbyList.innerHTML = `<div class="lobby-player"><span>No bets placed yet</span><span>-</span></div>`;
-            }
-        }
-
-        function handleButtonClick() {
-            if (gameState === 'WAITING') {
-                if (hasPlacedBet) return;
-                currentBet = parseInt(betInput.value);
-                if (isNaN(currentBet) || currentBet <= 0) {
-                    alert("Please enter a valid bet amount!");
-                    return;
-                }
-                if (currentBet > balance) {
-                    alert("Not enough tokens!");
-                    return;
-                }
-
-                balance -= currentBet;
-                balanceEl.innerText = balance;
-                hasPlacedBet = true;
-
-                activePlayers.unshift({ name: telegramUser + " 🐱", bet: currentBet });
-                updateLobbyUI();
-
-                actionBtn.innerText = "BET LOCKED ✅ (Waiting for Launch)";
-                actionBtn.disabled = true;
-                betInput.disabled = true;
-            } else if (gameState === 'FLYING') {
-                cashOut();
-            } else if (gameState === 'CRASHED' || gameState === 'CASHED_OUT') {
-                startLobbyCountdown();
-            }
-        }
-
-        function launchFlight() {
-            gameState = 'FLYING';
-            crashAt = parseFloat((Math.random() * 6 + 1.3).toFixed(2));
-            flightHeight = 0;
-
-            if (hasPlacedBet) {
-                actionBtn.innerText = "CLAIM / CASH OUT 💰";
-                actionBtn.className = "action-btn cashout";
-                actionBtn.disabled = false;
-            } else {
-                actionBtn.innerText = "WATCHING ROUND 🚀";
-                actionBtn.disabled = true;
-            }
-
-            statusText.innerText = "Rocket lifting off through space!";
-            flames.style.display = 'block';
-            spaceBg.classList.add('animating');
-
-            if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(() => {
-                multiplier += 0.035;
-                multDisplay.innerText = multiplier.toFixed(2) + 'x';
-
-                if (flightHeight < 140) flightHeight += 1.5;
-                let randomShake = (Math.random() - 0.5) * 6;
-                rocketZone.style.transform = `translate(${randomShake}px, ${-flightHeight}px) rotate(${randomShake * 0.5}deg)`;
-
-                if (multiplier >= crashAt) {
-                    crashGame();
-                }
-            }, 75);
-        }
-
-        function cashOut() {
-            if (gameInterval) clearInterval(gameInterval);
-            gameState = 'CASHED_OUT';
-            spaceBg.classList.remove('animating');
-            flames.style.display = 'none';
-
-            let winnings = Math.floor(currentBet * multiplier);
-            balance += winnings;
-            balanceEl.innerText = balance;
-
-            multDisplay.style.color = "#38bdf8";
-            statusText.innerHTML = `<b style="color: #38bdf8;">🎉 Cashed out! Won +${winnings} tokens!</b>`;
-            actionBtn.innerText = "NEXT ROUND IN 3S...";
-            actionBtn.disabled = true;
-            rocketZone.style.transform = 'translate(0, 0)';
-
-            leaderboard.push({ name: telegramUser + " 🐱", score: multiplier.toFixed(2) + "x" });
-            try {
-                localStorage.setItem('kote_lb', JSON.stringify(leaderboard));
-            } catch (e) {}
-
-            if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
-                tg.HapticFeedback.notificationOccurred('success');
-            }
-            setTimeout(startLobbyCountdown, 3000);
-        }
-
-        function crashGame() {
-            if (gameInterval) clearInterval(gameInterval);
-            gameState = 'CRASHED';
-            spaceBg.classList.remove('animating');
-            flames.style.display = 'none';
-
-            multDisplay.style.color = "#ef4444";
-            multDisplay.innerText = multiplier.toFixed(2) + 'x';
-            
-            if (hasPlacedBet) {
-                statusText.innerHTML = `<b style="color: #ef4444;">💥 CRASHED! Lost ${currentBet} tokens.</b>`;
-            } else {
-                statusText.innerHTML = `<b style="color: #ef4444;">💥 ROCKET CRASHED at ${multiplier.toFixed(2)}x!</b>`;
-            }
-            
-            actionBtn.innerText = "NEXT ROUND IN 3S...";
-            actionBtn.disabled = true;
-            rocketZone.style.transform = 'translate(0, 0)';
-            
-            if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
-                tg.HapticFeedback.notificationOccurred('error');
-            }
-
-            setTimeout(startLobbyCountdown, 3000);
-        }
-
-        // Start the game loop safely
-        startLobbyCountdown();
-    </script>
-</body>
-</html>
+            tg.expand
