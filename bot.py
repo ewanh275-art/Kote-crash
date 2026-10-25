@@ -7,7 +7,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Setup logging to see errors clearly in Render logs
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -27,13 +26,11 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Kote Bot is live and running 24/7!")
     
     def log_message(self, format, *args):
-        # Suppress spammy HTTP log lines
         return
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
-    logger.info(f"Health check server running on port {port}")
     server.serve_forever()
 
 # --- 2. TELEGRAM BOT COMMAND HANDLERS ---
@@ -41,12 +38,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     balance = get_balance(user.id)
     
-    welcome_text = (
-        f"<b>🚀 Welcome to Kote Cat Bot, {user.first_name}!</b>\n\n"
-        f"💰 Your Balance: <b>{balance:,} Kote Tokens</b>\n\n"
-        f"• Feed, play & raid\n"
-        f"• Type /rocket to enter the 100x Crash Game!"
-    )
+    welcome_text = f"""<b>🚀 Welcome to Kote Cat Bot, {user.first_name}!</b>
+
+💰 Your Balance: <b>{balance:,} Kote Tokens</b>
+
+• Feed, play & raid
+• Type /rocket to enter the 100x Crash Game!"""
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 Play /rocket Crash Game", callback_data="start_rocket_prompt")]
@@ -80,10 +77,11 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_balances[user_id] -= bet_amount
     
     msg = await update.message.reply_text(
-        f"🚀 <b>Kote Crash Lobby Open!</b>\n\n"
-        f"👤 Player: {update.effective_user.first_name}\n"
-        f"🪙 Wagered: <b>{bet_amount:,} Tokens</b>\n"
-        f"⏳ <i>Waiting 10 seconds for other degens to place bets...</i>",
+        f"""🚀 <b>Kote Crash Lobby Open!</b>
+
+👤 Player: {update.effective_user.first_name}
+🪙 Wagered: <b>{bet_amount:,} Tokens</b>
+⏳ <i>Waiting 10 seconds for other degens to place bets...</i>""",
         parse_mode="HTML"
     )
 
@@ -92,10 +90,11 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(2)
         try:
             await msg.edit_text(
-                f"🚀 <b>Kote Crash Lobby Open!</b>\n\n"
-                f"👤 Player: {update.effective_user.first_name}\n"
-                f"🪙 Wagered: <b>{bet_amount:,} Tokens</b>\n"
-                f"⏳ <i>Starting in {remaining} seconds...</i>",
+                f"""🚀 <b>Kote Crash Lobby Open!</b>
+
+👤 Player: {update.effective_user.first_name}
+🪙 Wagered: <b>{bet_amount:,} Tokens</b>
+⏳ <i>Starting in {remaining} seconds...</i>""",
                 parse_mode="HTML"
             )
         except Exception:
@@ -143,11 +142,13 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"💰 CLAIM BAG ({current_multiplier:.2f}x)", callback_data="claim_bag")]
         ])
 
+        potential_win = int(bet_amount * current_multiplier)
         try:
             await msg.edit_text(
-                f"🚀 <b>Kote Rocket is Climbing!</b>\n\n"
-                f"📈 Multiplier: <b>{current_multiplier:.2f}x</b>\n"
-                f"🪙 Potential Win: <b>{int(bet_amount * current_multiplier):,} Tokens</b>",
+                f"""🚀 <b>Kote Rocket is Climbing!</b>
+
+📈 Multiplier: <b>{current_multiplier:.2f}x</b>
+🪙 Potential Win: <b>{potential_win:,} Tokens</b>""",
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
@@ -166,4 +167,47 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         winnings = int(bet_amount * state.cashed_out_at)
         new_bal = get_balance(user_id)
         await msg.edit_text(
-            f"🎉 <b>SUCCESS! Secured
+            f"""🎉 <b>SUCCESS! Secured the Bag!</b>
+
+📈 Cashed out at: <b>{state.cashed_out_at:.2f}x</b>
+💰 Won: <b>+{winnings:,} Tokens</b>
+🏦 New Balance: <b>{new_bal:,} Tokens</b>
+
+<i>Type /rocket [amount] to play again!</i>""",
+            parse_mode="HTML"
+        )
+    else:
+        new_bal = get_balance(user_id)
+        await msg.edit_text(
+            f"""💥 <b>BOOM! RUG-PULLED AT {crash_point:.2f}x!</b>
+
+📉 You waited too long and lost your {bet_amount:,} token wager.
+🏦 Balance remaining: <b>{new_bal:,} Tokens</b>
+
+<i>Type /rocket [amount] to try and win it back!</i>""",
+            parse_mode="HTML"
+        )
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "start_rocket_prompt":
+        await query.message.reply_text("💡 Type `/rocket 1000` (or just `/rocket`) in chat to place your bet and launch!")
+
+# --- 3. MAIN APPLICATION STARTUP ---
+def main():
+    TOKEN = "8991916858:AAGHJ3e4mXXi5rh7MfBq8uDYzr63HHj8mcw"
+
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    application = ApplicationBuilder().token(TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("rocket", rocket_command))
+    application.add_handler(CallbackQueryHandler(button_handler))
+
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
