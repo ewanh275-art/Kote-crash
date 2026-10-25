@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kote Crash Game</title>
-    <script>
-        // Catch any runtime errors to prevent black screen hangs
-        window.onerror = function(msg, url, line) {
-            document.body.innerHTML += `<div style="background:red;color:white;padding:15px;margin:10px;z-index:99999;position:relative;border-radius:8px;"><b>Error:</b> ${msg} (Line ${line})</div>`;
-        };
-    </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -75,7 +69,7 @@
             overflow: hidden;
         }
         
-        /* Clean Space Background without Dots */
+        /* Clean Space Background */
         .space-bg {
             position: absolute;
             width: 100%;
@@ -198,17 +192,174 @@
             filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.6));
         }
 
-        /* Cockpit Cat Image */
-        .rocket-cat-img {
+        /* Cockpit Cat Image with Emoji Fallback */
+        .rocket-cat-container {
             position: absolute;
             top: 34px;
             left: 50%;
             transform: translateX(-50%);
             width: 50px;
             height: 50px;
-            object-fit: cover;
             border-radius: 50%;
             border: 2px solid #38bdf8;
             z-index: 15;
             background: #0f172a;
-            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+        .rocket-cat-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .leaderboard-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 7, 14, 0.96);
+            z-index: 40;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .leaderboard-panel.open {
+            display: flex;
+        }
+        .lb-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f8fafc;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .lb-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        .lb-item {
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+        }
+        .lb-rank {
+            font-weight: bold;
+            color: #38bdf8;
+            width: 30px;
+        }
+        .lb-name {
+            flex-grow: 1;
+            color: #f8fafc;
+            font-weight: 500;
+        }
+        .lb-score {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .controls {
+            width: 100%;
+            padding: 16px 20px 24px 20px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid #1e293b;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 30;
+        }
+        .bet-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bet-row label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .bet-input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 110px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .action-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
+        }
+        .action-btn.cashout {
+            background: #eab308;
+            color: #000;
+            box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4);
+        }
+        .action-btn:disabled {
+            background: #475569;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="font-weight: bold; color: #f8fafc;">🐱 Kote Crash</div>
+        <div class="tab-btns">
+            <button class="tab-btn active" id="gameTabBtn" onclick="switchTab('game')">Game</button>
+            <button class="tab-btn" id="lbTabBtn" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+        </div>
+        <div class="balance-box">💰 <span id="balance">10000</span></div>
+    </div>
+
+    <div class="game-screen" id="gameScreen">
+        <div class="space-bg"></div>
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="planet planet-1"></div>
+        <div class="planet planet-2"></div>
+        
+        <div class="players-lobby">
+            <div class="lobby-title">👥 Active Players in Round:</div>
+            <div id="lobbyList">
+                <div class="lobby-player"><span>No bets placed yet</span><span>-</span></div>
+            </div>
+        </div>
+
+        <div class="multiplier-display" id="multDisplay">1.00x</div>
+        <div class="status-text" id="statusText">Loading game...</div>
+
+        <!-- Rocket Container starting bottom-left -->
+        <div class="rocket-flight-zone" id="rocketZone">
+            <div class="rocket-cat-container">
+                <img src="https://ewanh275-art.github.io/Kote-crash/cat.png" alt="Kote Cat" class="rocket-cat-img" onerror="this.style.display='none'; this.parentNode.innerHTML='🐱';">
+            </div>
+            <svg class="rocket-svg-container" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+                <g id="flames" style="display: none;">
+                    <path d="M120,230 L150,300 L180,230 Z" fill="#ef4444"/>
+                    <path d="M130,235 L150,280 L170,2
