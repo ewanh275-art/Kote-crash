@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # --- IN-MEMORY DATA STORES ---
 user_balances = {}
-active_games = {}
+active_games = {}  # {user_id: {"bet": int, "mult": float, "claimed": bool, "active": bool, "msg_id": int}}
 
 def get_balance(user_id):
     if user_id not in user_balances:
@@ -104,9 +104,10 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "claimed": False,
         "cashed_at": 0.0,
         "active": True,
-        "msg_id": msg.message_id
+        "msg": msg
     }
 
+    # 10-Second Countdown Phase
     for remaining in range(10, 0, -2):
         await asyncio.sleep(2)
         try:
@@ -121,16 +122,28 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    crash_point = round(random.uniform(1.20, 15.00), 2)
+    # --- WEIGHTED CRASH ALGORITHM ---
+    # 40% chance of early rug (1.00x - 2.00x)
+    # 40% chance of mid climb (2.01x - 5.00x)
+    # 20% chance of degen moon (5.01x - 15.00x)
+    roll = random.random()
+    if roll < 0.40:
+        crash_point = round(random.uniform(1.00, 2.00), 2)
+    elif roll < 0.80:
+        crash_point = round(random.uniform(2.01, 5.00), 2)
+    else:
+        crash_point = round(random.uniform(5.01, 15.00), 2)
+
     current_multiplier = 1.00
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 CLAIM BAG! 💰", callback_data=f"claim_{user_id}")]
     ])
 
-    while current_multiplier < crash_point and not active_games[user_id]["claimed"]:
-        await asyncio.sleep(0.8)
-        current_multiplier = round(current_multiplier + random.uniform(0.12, 0.40), 2)
+    # Climbing loop
+    while current_multiplier < crash_point and active_games[user_id]["active"] and not active_games[user_id]["claimed"]:
+        await asyncio.sleep(0.7)
+        current_multiplier = round(current_multiplier + random.uniform(0.10, 0.35), 2)
         
         if current_multiplier >= crash_point:
             current_multiplier = crash_point
@@ -151,34 +164,28 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    game_session = active_games[user_id]
-    game_session["active"] = False
+    game_session = active_games.get(user_id)
+    if not game_session:
+        return
 
-    if game_session["claimed"]:
-        winnings = int(bet_amount * game_session["cashed_at"])
+    # If game ended naturally without being claimed
+    if game_session["active"] and not game_session["claimed"]:
+        game_session["active"] = False
         new_bal = get_balance(user_id)
-        await msg.edit_text(
-            f"""🎉 <b>SUCCESS! Secured the Bag!</b>
-
-📈 Cashed out at: <b>{game_session['cashed_at']:.2f}x</b>
-💰 Won: <b>+{winnings:,} Tokens</b>
-🏦 New Balance: <b>{new_bal:,} Tokens</b>
-
-<i>Type /rocket [amount] to play again!</i>""",
-            parse_mode="HTML"
-        )
-    else:
-        new_bal = get_balance(user_id)
-        await msg.edit_text(
-            f"""💥 <b>BOOM! RUG-PULLED AT {crash_point:.2f}x!</b>
+        try:
+            await msg.edit_text(
+                f"""💥 <b>BOOM! RUG-PULLED AT {crash_point:.2f}x!</b>
 
 📉 You waited too long and lost your {bet_amount:,} token wager.
 🏦 Balance remaining: <b>{new_bal:,} Tokens</b>
 
 <i>Type /rocket [amount] to try and win it back!</i>""",
-            parse_mode="HTML"
-        )
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
 
+# --- GLOBAL BUTTON HANDLER ---
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
@@ -199,12 +206,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session = active_games.get(clicker_id)
         if session and session["active"] and not session["claimed"]:
             session["claimed"] = True
+            session["active"] = False
             session["cashed_at"] = session["mult"]
-            winnings = int(session["bet"] * session["mult"])
+            
+            bet_amount = session["bet"]
+            multiplier = session["mult"]
+            winnings = int(bet_amount * multiplier)
             user_balances[clicker_id] += winnings
-            await query.answer(f"🎉 Bag Secured! Won {winnings:,} tokens at {session['mult']:.2f}x!", show_alert=True)
+            new_bal = get_balance(clicker_id)
+
+            await query.answer(f"🎉 Bag Secured! Won {winnings:,} tokens at {multiplier:.2f}x!", show_alert=True)
+
+            # Instantly update the message on screen
+            try:
+                msg = session.get("msg")
+                if msg:
+                    await msg.edit_text(
+                        f"""🎉 <b>SUCCESS! Secured the Bag!</b>
+
+📈 Cashed out at: <b>{multiplier:.2f}x</b>
+💰 Won: <b>+{winnings:,} Tokens</b>
+🏦 New Balance: <b>{new_bal:,} Tokens</b>
+
+<i>Type /rocket [amount] to play again!</i>""",
+                        parse_mode="HTML"
+                    )
+            except Exception as e:
+                logger.error(f"Error updating message on claim: {e}")
         else:
-            await query.answer("❌ Game ended or already claimed!", show_alert=True)
+            await query.answer("❌ Game already ended or claimed!", show_alert=True)
 
 # --- 3. MAIN APPLICATION STARTUP ---
 def main():
