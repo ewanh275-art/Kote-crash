@@ -227,4 +227,442 @@
             width: 100%;
             height: 100%;
             background: rgba(5, 7, 14, 0.96);
-            z-index:
+            z-index: 40;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .leaderboard-panel.open {
+            display: flex;
+        }
+        .lb-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f8fafc;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .lb-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        .lb-item {
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+        }
+        .lb-rank {
+            font-weight: bold;
+            color: #38bdf8;
+            width: 30px;
+        }
+        .lb-name {
+            flex-grow: 1;
+            color: #f8fafc;
+            font-weight: 500;
+        }
+        .lb-score {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .controls {
+            width: 100%;
+            padding: 16px 20px 24px 20px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid #1e293b;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 30;
+        }
+        .bet-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bet-row label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .bet-input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 110px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .action-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
+        }
+        .action-btn.cashout {
+            background: #eab308;
+            color: #000;
+            box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4);
+        }
+        .action-btn.share-btn {
+            background: #0ea5e9;
+            color: white;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+            display: none;
+        }
+        .action-btn:disabled {
+            background: #475569;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="font-weight: bold; color: #f8fafc;">🐱 Kote Crash</div>
+        <div class="tab-btns">
+            <button class="tab-btn active" id="gameTabBtn" onclick="switchTab('game')">Game</button>
+            <button class="tab-btn" id="lbTabBtn" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+        </div>
+        <div class="balance-box">💰 <span id="balance">10000</span></div>
+    </div>
+
+    <div class="game-screen" id="gameScreen">
+        <div class="space-bg"></div>
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="planet planet-1"></div>
+        <div class="planet planet-2"></div>
+        
+        <div class="players-lobby">
+            <div class="lobby-title">👥 Active Players in Round:</div>
+            <div id="lobbyList">
+                <div class="lobby-player"><span>No bets placed yet</span><span>-</span></div>
+            </div>
+        </div>
+
+        <div class="multiplier-display" id="multDisplay">1.00x</div>
+        <div class="status-text" id="statusText" onclick="forceLaunchNow()">Next round starting... (Tap to start)</div>
+
+        <!-- Rocket Container starting bottom-left -->
+        <div class="rocket-flight-zone" id="rocketZone">
+            <div class="rocket-cat-container">
+                <img src="https://ewanh275-art.github.io/Kote-crash/cat.png" alt="Kote Cat" class="rocket-cat-img" onerror="this.style.display='none'; this.parentNode.innerHTML='🐱';">
+            </div>
+            <svg class="rocket-svg-container" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+                <g id="flames" style="display: none;">
+                    <path d="M120,230 L150,300 L180,230 Z" fill="#ef4444"/>
+                    <path d="M130,235 L150,280 L170,235 Z" fill="#f97316"/>
+                    <path d="M140,240 L150,260 L160,240 Z" fill="#facc15"/>
+                </g>
+                <path d="M150,40 C190,90 190,180 170,220 L130,220 C110,180 110,90 150,40 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="3"/>
+                <ellipse cx="150" cy="45" rx="15" ry="10" fill="#e2e8f0"/>
+                <path d="M115,180 L80,210 L115,220 Z" fill="#64748b"/>
+                <path d="M185,180 L220,210 L185,220 Z" fill="#64748b"/>
+                <rect x="125" y="110" width="50" height="30" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                <text x="150" y="131" font-size="16" font-weight="900" fill="#38bdf8" text-anchor="middle">0x0</text>
+                <text x="150" y="85" font-size="9" font-weight="bold" fill="#475569" text-anchor="middle" transform="rotate(90, 150, 85)">KOTE ROCKET</text>
+            </svg>
+        </div>
+    </div>
+
+    <div class="leaderboard-panel" id="lbPanel">
+        <div class="lb-title">🏆 Chat Leaderboard</div>
+        <div class="lb-list" id="lbList"></div>
+    </div>
+
+    <div class="controls">
+        <div class="bet-row">
+            <label>Bet Amount (Tokens):</label>
+            <input type="number" id="betInput" class="bet-input" value="100" min="10" max="10000">
+        </div>
+        <button id="actionBtn" class="action-btn" onclick="handleButtonClick()">PLACE BET FOR NEXT ROUND 🚀</button>
+        <button id="shareBtn" class="action-btn share-btn" onclick="shareResultToChat()">📢 SHARE RESULT TO CHAT</button>
+    </div>
+
+    <script>
+        let gameState = 'WAITING';
+        let balance = 10000;
+        let currentBet = 100;
+        let multiplier = 1.00;
+        let crashAt = 1.00;
+        let hasPlacedBet = false;
+        let lastResultText = "";
+        let activePlayers = [];
+        let leaderboard = [];
+
+        let lastTime = 0;
+        let countdownTimer = 10.0;
+        let flightProgress = 0;
+
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg && typeof tg.expand === 'function') {
+            tg.expand();
+        }
+
+        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) 
+            ? (tg.initDataUnsafe.user.username ? `@${tg.initDataUnsafe.user.username}` : tg.initDataUnsafe.user.first_name) 
+            : "KoteCadet";
+
+        const balanceEl = document.getElementById('balance');
+        const betInput = document.getElementById('betInput');
+        const multDisplay = document.getElementById('multDisplay');
+        const statusText = document.getElementById('statusText');
+        const actionBtn = document.getElementById('actionBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const rocketZone = document.getElementById('rocketZone');
+        const flames = document.getElementById('flames');
+        const gameScreen = document.getElementById('gameScreen');
+        const lbPanel = document.getElementById('lbPanel');
+        const lbList = document.getElementById('lbList');
+        const lobbyList = document.getElementById('lobbyList');
+
+        try {
+            leaderboard = JSON.parse(localStorage.getItem('kote_lb')) || [
+                { name: telegramUser + " 🐱", score: "2.50x" }
+            ];
+        } catch (e) {
+            leaderboard = [];
+        }
+
+        function switchTab(tab) {
+            if (tab === 'game') {
+                gameScreen.style.display = 'flex';
+                lbPanel.classList.remove('open');
+                document.getElementById('gameTabBtn').classList.add('active');
+                document.getElementById('lbTabBtn').classList.remove('active');
+            } else {
+                gameScreen.style.display = 'none';
+                lbPanel.classList.add('open');
+                document.getElementById('lbTabBtn').classList.add('active');
+                document.getElementById('gameTabBtn').classList.remove('active');
+                renderLeaderboard();
+            }
+        }
+        window.switchTab = switchTab;
+
+        function renderLeaderboard() {
+            lbList.innerHTML = '';
+            leaderboard.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
+            leaderboard.forEach((item, index) => {
+                lbList.innerHTML += `
+                    <div class="lb-item">
+                        <div class="lb-rank">#${index + 1}</div>
+                        <div class="lb-name">${item.name}</div>
+                        <div class="lb-score">${item.score}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function startLobby() {
+            gameState = 'WAITING';
+            countdownTimer = 10.0;
+            hasPlacedBet = false;
+            multiplier = 1.00;
+            multDisplay.innerText = "1.00x";
+            multDisplay.style.color = "#22c55e";
+            
+            actionBtn.style.display = "block";
+            actionBtn.innerText = "PLACE BET FOR NEXT ROUND 🚀";
+            actionBtn.className = "action-btn";
+            shareBtn.style.display = "none";
+            betInput.disabled = false;
+
+            flightProgress = 0;
+            rocketZone.style.transform = `translate(0px, 0px) rotate(0deg)`;
+            flames.style.display = 'none';
+
+            activePlayers = [];
+            updateLobbyUI();
+        }
+
+        window.forceLaunchNow = function() {
+            if (gameState === 'WAITING') {
+                launchFlight();
+            }
+        };
+
+        function updateLobbyUI() {
+            lobbyList.innerHTML = '';
+            activePlayers.forEach(p => {
+                lobbyList.innerHTML += `<div class="lobby-player"><span>${p.name}</span><span>${p.bet} tokens</span></div>`;
+            });
+            if (activePlayers.length === 0) {
+                lobbyList.innerHTML = `<div class="lobby-player"><span>No bets placed yet</span><span>-</span></div>`;
+            }
+        }
+
+        function handleButtonClick() {
+            if (gameState === 'WAITING') {
+                if (hasPlacedBet) return;
+                currentBet = parseInt(betInput.value);
+                if (isNaN(currentBet) || currentBet <= 0) {
+                    alert("Please enter a valid bet amount!");
+                    return;
+                }
+                if (currentBet > balance) {
+                    alert("Not enough tokens!");
+                    return;
+                }
+
+                balance -= currentBet;
+                balanceEl.innerText = balance;
+                hasPlacedBet = true;
+
+                activePlayers.push({ name: telegramUser + " 🐱", bet: currentBet });
+                updateLobbyUI();
+
+                actionBtn.innerText = "BET LOCKED ✅ (Waiting for Launch)";
+                actionBtn.disabled = true;
+                betInput.disabled = true;
+            } else if (gameState === 'FLYING') {
+                cashOut();
+            }
+        }
+        window.handleButtonClick = handleButtonClick;
+
+        function launchFlight() {
+            gameState = 'FLYING';
+            crashAt = parseFloat((Math.random() * 6 + 1.3).toFixed(2));
+            multiplier = 1.00;
+            flightProgress = 0;
+
+            if (hasPlacedBet) {
+                actionBtn.innerText = "CLAIM / CASH OUT 💰";
+                actionBtn.className = "action-btn cashout";
+                actionBtn.disabled = false;
+            } else {
+                actionBtn.innerText = "WATCHING ROUND 🚀";
+                actionBtn.disabled = true;
+            }
+
+            statusText.innerText = "Rocket launching towards top-right!";
+            flames.style.display = 'block';
+        }
+
+        function cashOut() {
+            gameState = 'CASHED_OUT';
+            flames.style.display = 'none';
+
+            let winnings = Math.floor(currentBet * multiplier);
+            balance += winnings;
+            balanceEl.innerText = balance;
+
+            multDisplay.style.color = "#38bdf8";
+            statusText.innerHTML = `<b style="color: #38bdf8;">🎉 Cashed out! Won +${winnings} tokens!</b>`;
+            
+            lastResultText = `🏆 ${telegramUser} WON ${winnings} tokens at ${multiplier.toFixed(2)}x on Kote Crash! 🚀🐱`;
+            actionBtn.style.display = "none";
+            shareBtn.style.display = "block";
+
+            leaderboard.push({ name: telegramUser + " 🐱", score: multiplier.toFixed(2) + "x" });
+            try {
+                localStorage.setItem('kote_lb', JSON.stringify(leaderboard));
+            } catch (e) {}
+
+            if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+
+            setTimeout(startLobby, 5000);
+        }
+
+        function crashGame() {
+            gameState = 'CRASHED';
+            flames.style.display = 'none';
+
+            multDisplay.style.color = "#ef4444";
+            multDisplay.innerText = multiplier.toFixed(2) + 'x';
+            
+            if (hasPlacedBet) {
+                statusText.innerHTML = `<b style="color: #ef4444;">💥 CRASHED! Lost ${currentBet} tokens.</b>`;
+                lastResultText = `💀 ${telegramUser} LOST ${currentBet} tokens when the rocket crashed at ${multiplier.toFixed(2)}x! 🚀💥`;
+            } else {
+                statusText.innerHTML = `<b style="color: #ef4444;">💥 ROCKET CRASHED at ${multiplier.toFixed(2)}x!</b>`;
+                lastResultText = `👀 ${telegramUser} watched the rocket crash at ${multiplier.toFixed(2)}x on Kote Crash!`;
+            }
+            
+            actionBtn.style.display = "none";
+            shareBtn.style.display = "block";
+            
+            if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
+                tg.HapticFeedback.notificationOccurred('error');
+            }
+
+            setTimeout(startLobby, 5000);
+        }
+
+        window.shareResultToChat = function() {
+            if (tg && typeof tg.openTelegramLink === 'function') {
+                const shareUrl = `https://t.me/share/url?url=https://t.me/Kote_crash_bot&text=${encodeURIComponent(lastResultText)}`;
+                tg.openTelegramLink(shareUrl);
+            } else {
+                alert(lastResultText);
+            }
+        };
+
+        // Master Animation Loop (Runs every frame, impossible to freeze from background throttling)
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            let deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            if (deltaTime > 0.5) deltaTime = 0.016; // Prevent massive jumps if tab was unfocused
+
+            if (gameState === 'WAITING') {
+                countdownTimer -= deltaTime;
+                if (countdownTimer <= 0) {
+                    launchFlight();
+                } else {
+                    statusText.innerText = `Next round in ${Math.ceil(countdownTimer)}s... (Tap to start)`;
+                }
+            } else if (gameState === 'FLYING') {
+                multiplier += deltaTime * 0.45;
+                multDisplay.innerText = multiplier.toFixed(2) + 'x';
+
+                if (flightProgress < 1) {
+                    flightProgress += deltaTime * 0.25;
+                    if (flightProgress > 1) flightProgress = 1;
+                }
+
+                let currentX = flightProgress * 200;
+                let currentY = flightProgress * 220;
+                let randomShake = (Math.random() - 0.5) * 4;
+
+                rocketZone.style.transform = `translate(${currentX + randomShake}px, ${-currentY + randomShake}px) rotate(38deg)`;
+
+                if (multiplier >= crashAt) {
+                    crashGame();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize game
+        startLobby();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
