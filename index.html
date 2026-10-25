@@ -3,62 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kote Crash</title>
+    <title>Kote Crash Game</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            text-align: center;
-            padding: 40px;
+            margin: 0;
+            padding: 0;
+            background-color: #0b0f19;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            overflow: hidden;
         }
-        h1 {
-            color: #38bdf8;
-            font-size: 32px;
+        .header {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid #1e293b;
         }
-        .multiplier {
-            font-size: 48px;
+        .balance-box {
+            font-size: 16px;
             font-weight: bold;
-            color: #22c55e;
-            margin: 20px 0;
+            color: #38bdf8;
         }
-        button {
+        .game-container {
+            flex-grow: 1;
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        /* Starry background simulation */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(white 1px, transparent 0);
+            background-size: 30px 30px;
+            opacity: 0.3;
+            z-index: 1;
+        }
+        .multiplier-display {
+            font-size: 56px;
+            font-weight: 900;
+            color: #22c55e;
+            z-index: 10;
+            text-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+            margin-bottom: 10px;
+        }
+        .status-text {
+            font-size: 16px;
+            color: #94a3b8;
+            z-index: 10;
+            margin-bottom: 20px;
+        }
+        /* Rocket / Cat Visual Container */
+        .rocket-area {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease-out;
+        }
+        .rocket-img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6));
+        }
+        /* Controls Footer */
+        .controls {
+            width: 100%;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid #1e293b;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 20;
+        }
+        .bet-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bet-row label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .bet-input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100px;
+            text-align: right;
+        }
+        .action-btn {
             background: #22c55e;
             color: white;
             border: none;
-            padding: 16px 32px;
-            font-size: 20px;
+            padding: 16px;
+            font-size: 18px;
             font-weight: bold;
             border-radius: 12px;
             width: 100%;
             cursor: pointer;
-            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .action-btn.cashout {
+            background: #eab308;
+            color: #000;
+        }
+        .action-btn:disabled {
+            background: #475569;
+            color: #94a3b8;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <h1>🐱🚀 Kote Crash</h1>
-    <div class="multiplier" id="mult">1.00x</div>
-    <p id="status">Tap below to test the game!</p>
-    <button onclick="testLaunch()">LAUNCH ROCKET</button>
+
+    <div class="header">
+        <div style="font-weight: bold; color: #f8fafc;">🐱 Kote Crash</div>
+        <div class="balance-box">💰 <span id="balance">10000</span> Tokens</div>
+    </div>
+
+    <div class="game-container">
+        <div class="stars"></div>
+        <div class="multiplier-display" id="multDisplay">1.00x</div>
+        <div class="status-text" id="statusText">Place your bet and launch!</div>
+
+        <div class="rocket-area" id="rocketArea">
+            <!-- Uses your specific Kote Cat & Rocket image from GitHub or direct asset -->
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><text y='100' font-size='80'>🐱🚀</text></svg>" alt="Kote Rocket" class="rocket-img" id="rocketImage">
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="bet-row">
+            <label>Bet Amount:</label>
+            <input type="number" id="betInput" class="bet-input" value="100" min="10" max="10000">
+        </div>
+        <button id="actionBtn" class="action-btn" onclick="handleButtonClick()">LAUNCH ROCKET 🚀</button>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        function testLaunch() {
-            let mult = 1.00;
-            document.getElementById('status').innerText = "Rocket climbing...";
-            let interval = setInterval(() => {
-                mult += 0.25;
-                document.getElementById('mult').innerText = mult.toFixed(2) + 'x';
-                if (mult >= 3.00) {
-                    clearInterval(interval);
-                    document.getElementById('status').innerHTML = '<b style="color: #ef4444;">💥 CRASHED AT 3.00x!</b>';
-                    tg.HapticFeedback.notificationOccurred('error');
+        let balance = 10000;
+        let currentBet = 100;
+        let gameState = 'IDLE'; // IDLE, FLYING, CRASHED, CASHED_OUT
+        let multiplier = 1.00;
+        let crashAt = 1.00;
+        let gameInterval = null;
+
+        const balanceEl = document.getElementById('balance');
+        const betInput = document.getElementById('betInput');
+        const multDisplay = document.getElementById('multDisplay');
+        const statusText = document.getElementById('statusText');
+        const actionBtn = document.getElementById('actionBtn');
+        const rocketArea = document.getElementById('rocketArea');
+
+        function handleButtonClick() {
+            if (gameState === 'IDLE' || gameState === 'CRASHED' || gameState === 'CASHED_OUT') {
+                startFlight();
+            } else if (gameState === 'FLYING') {
+                cashOut();
+            }
+        }
+
+        function startFlight() {
+            currentBet = parseInt(betInput.value);
+            if (isNaN(currentBet) || currentBet <= 0) {
+                alert("Please enter a valid bet amount!");
+                return;
+            }
+            if (currentBet > balance) {
+                alert("Not enough tokens in your balance!");
+                return;
+            }
+
+            // Deduct bet
+            balance -= currentBet;
+            balanceEl.innerText = balance;
+
+            gameState = 'FLYING';
+            multiplier = 1.00;
+            // Random crash point between 1.20x and 8.00x weighted
+            crashAt = parseFloat((Math.random() * 5 + 1.2).toFixed(2));
+
+            actionBtn.innerText = "CLAIM / CASH OUT 💰";
+            actionBtn.className = "action-btn cashout";
+            betInput.disabled = true;
+            statusText.innerText = "Rocket is climbing through space...";
+            multDisplay.style.color = "#22c55e";
+
+            let speed = 150;
+            gameInterval = setInterval(() => {
+                multiplier += 0.03;
+                multDisplay.innerText = multiplier.toFixed(2) + 'x';
+
+                // Gentle shaking / flying animation effect
+                let randomOffset = (Math.random() - 0.5) * 8;
+                rocketArea.style.transform = `translate(${randomOffset}px, ${-multiplier * 3}px) rotate(${randomOffset}deg)`;
+
+                if (multiplier >= crashAt) {
+                    crashGame();
                 }
-            }, 300);
+            }, 80);
+        }
+
+        function cashOut() {
+            clearInterval(gameInterval);
+            gameState = 'CASHED_OUT';
+
+            let winnings = Math.floor(currentBet * multiplier);
+            balance += winnings;
+            balanceEl.innerText = balance;
+
+            multDisplay.style.color = "#38bdf8";
+            statusText.innerHTML = `<b style="color: #38bdf8;">🎉 Cashed out at ${multiplier.toFixed(2)}x! Won +${winnings} tokens!</b>`;
+            actionBtn.innerText = "LAUNCH AGAIN 🚀";
+            actionBtn.className = "action-btn";
+            betInput.disabled = false;
+            rocketArea.style.transform = 'translate(0, 0)';
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function crashGame() {
+            clearInterval(gameInterval);
+            gameState = 'CRASHED';
+
+            multDisplay.style.color = "#ef4444";
+            multDisplay.innerText = multiplier.toFixed(2) + 'x';
+            statusText.innerHTML = `<b style="color: #ef4444;">💥 CRASHED! Lost ${currentBet} tokens.</b>`;
+            
+            actionBtn.innerText = "TRY AGAIN 🚀";
+            actionBtn.className = "action-btn";
+            betInput.disabled = false;
+            rocketArea.style.transform = 'translate(0, 0)';
+            tg.HapticFeedback.notificationOccurred('error');
         }
     </script>
 </body>
