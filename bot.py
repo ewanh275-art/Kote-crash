@@ -2,9 +2,14 @@ import os
 import random
 import asyncio
 import threading
+import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# Setup logging to see errors clearly in Render logs
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # --- IN-MEMORY USER BALANCES ---
 user_balances = {}
@@ -20,10 +25,15 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Kote Bot is live and running 24/7!")
+    
+    def log_message(self, format, *args):
+        # Suppress spammy HTTP log lines
+        return
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logger.info(f"Health check server running on port {port}")
     server.serve_forever()
 
 # --- 2. TELEGRAM BOT COMMAND HANDLERS ---
@@ -144,6 +154,16 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    game_active = false_val = False
+    game_active = False
     
-    # Clean
+    try:
+        context.application.remove_handler(handler)
+    except Exception:
+        pass
+
+    # End game result message
+    if state.claimed:
+        winnings = int(bet_amount * state.cashed_out_at)
+        new_bal = get_balance(user_id)
+        await msg.edit_text(
+            f"🎉 <b>SUCCESS! Secured
