@@ -1,5 +1,6 @@
 import os
 import random
+import asyncio
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -21,43 +22,79 @@ def run_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "<b>🚀 Welcome to Kote Cat Bot!</b>\n\n"
-        "The ultimate Telegram pet simulator and degen ecosystem. "
-        "Choose your game below to start stacking coins and raiding!"
+        "The ultimate Telegram pet simulator and degen ecosystem.\n"
+        "• Feed, play & raid\n"
+        "• Build streaks & stack coins\n"
+        "• Live leaderboard tracking!\n\n"
+        "<i>Use /rocket to play the 100x Crash Game!</i>"
     )
     
-    # Menu with two separate game options
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🪙 Game 1: Moon Launcher & Raids", callback_data="game_raids")],
-        [InlineKeyboardButton("🚀 Game 2: Rocket Crash (100x)", callback_data="game_crash")]
+        [InlineKeyboardButton("🪙 Open Raid & Pet Menu", callback_data="game_raids")],
+        [InlineKeyboardButton("🚀 Launch /rocket Game", callback_data="trigger_rocket")]
     ])
     
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
+
+# Dedicated /rocket command for the Crash game
+async def rocket_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Send initial launch message
+    msg = await update.message.reply_text(
+        "🚀 <b>Kote Rocket Launch Initiated!</b>\n\n"
+        "🐱 <i>Kote Cat is strapped in...</i>\n"
+        "Multiplier: <b>1.00x</b>",
+        parse_mode="HTML"
+    )
+
+    # Determine random crash point between 1.20x and 15.00x
+    crash_point = round(random.uniform(1.20, 15.00), 2)
+    current_multiplier = 1.00
+
+    # Step-by-step climbing animation loop
+    while current_multiplier < crash_point:
+        await asyncio.sleep(0.8) # Update speed
+        current_multiplier = round(current_multiplier + random.uniform(0.15, 0.45), 2)
+        
+        if current_multiplier >= crash_point:
+            current_multiplier = crash_point
+            break
+            
+        try:
+            await msg.edit_text(
+                f"🚀 <b>Kote Rocket is Climbing!</b>\n\n"
+                f"📈 Multiplier: <b>{current_multiplier:.2f}x</b>\n"
+                f"<i>Hold on tight, degen!</i>",
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass # Prevent flood-limit crashes if updates are too fast
+
+    # Crash / Rug-pull ending
+    await asyncio.sleep(0.5)
+    await msg.edit_text(
+        f"💥 <b>BOOM! RUG-PULLED AT {crash_point:.2f}x!</b> 📉\n\n"
+        f"🔥 The flames engulfed the rocket!\n"
+        f"<i>Type /rocket to play again or /start for the main menu.</i>",
+        parse_mode="HTML"
+    )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
     if query.data == "game_raids":
-        # Game 1 Logic: Moon Launcher / Raid Simulation
         await query.edit_message_text(
             text="🪙 <b>Kote Moon Launcher & Raids Active!</b>\n\n"
                  "• Feed, play & raid.\n"
-                 "• Build streaks & stack coins.\n"
-                 "• Live leaderboard tracking!\n\n"
-                 "<i>Status: Ready for your next raid! Type /start to return.</i>",
+                 "• Build streaks & stack coins.\n\n"
+                 "<i>Type /start to return or /rocket to play the crash game!</i>",
             parse_mode="HTML"
         )
-        
-    elif query.data == "game_crash":
-        # Game 2 Logic: Simulated 100x Crash Multiplier
-        crash_point = round(random.uniform(1.00, 15.00), 2)
-        await query.edit_message_text(
-            text=f"🚀 <b>Kote Rocket Crash Started!</b>\n\n"
-                 f"The rocket launched into the degen atmosphere...\n"
-                 f"💥 <b>Rug-pulled at {crash_point}x!</b>\n\n"
-                 f"<i>Did you secure the bag in time? Type /start to play again.</i>",
-            parse_mode="HTML"
-        )
+    elif query.data == "trigger_rocket":
+        await query.message.delete()
+        # Simulate typing /rocket via button click
+        context.args = []
+        await rocket_game(query, context)
 
 # --- 3. MAIN APPLICATION STARTUP ---
 def main():
@@ -69,9 +106,10 @@ def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("rocket", rocket_game))
     application.add_handler(CallbackQueryHandler(button_handler))
 
-    print("Kote Bot with 2 games is starting polling...")
+    print("Kote Bot with interactive /rocket game is starting polling...")
     application.run_polling()
 
 if __name__ == "__main__":
