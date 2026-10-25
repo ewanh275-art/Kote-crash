@@ -31,8 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 The ultimate degen ecosystem with smooth visual mini-apps.
 Tap below to open the live visual rocket game!"""
     
-    # Added ?v=2 to force Telegram's cache to refresh
-    webapp_url = "https://ewanh275-art.github.io/Kote-crash/?v=2"
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🎮 Open Visual Rocket Game 🚀", web_app=WebAppInfo(url=webapp_url))]
@@ -41,7 +40,7 @@ Tap below to open the live visual rocket game!"""
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    webapp_url = "https://ewanh275-art.github.io/Kote-crash/?v=2"
+    webapp_url = "https://ewanh275-art.github.io/Kote-crash/"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 Launch Visual Crash Game", web_app=WebAppInfo(url=webapp_url))]
@@ -55,7 +54,8 @@ async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- 3. MAIN APPLICATION STARTUP ---
 def main():
-    TOKEN = "8991916858:AAGHJ3e4mXXi5rh7MfBq8uDYzr63HHj8mcw"
+    # Securely load the token from Render environment variables
+    TOKEN = os.environ.get("BOT_TOKEN")
 
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
