@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kote Crash Game</title>
+    <script>
+        // Catch any runtime errors to prevent black screen hangs
+        window.onerror = function(msg, url, line) {
+            document.body.innerHTML += `<div style="background:red;color:white;padding:15px;margin:10px;z-index:99999;position:relative;border-radius:8px;"><b>Error:</b> ${msg} (Line ${line})</div>`;
+        };
+    </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -69,52 +75,55 @@
             overflow: hidden;
         }
         
-        /* Stunning Space Background with Nebulas & Stars */
+        /* Clean Space Background without Dots */
         .space-bg {
             position: absolute;
             width: 100%;
-            height: 300%;
-            top: -100%;
+            height: 100%;
+            top: 0;
+            left: 0;
             background: 
-                radial-gradient(circle at 30% 20%, rgba(147, 51, 234, 0.2) 0%, transparent 35%),
-                radial-gradient(circle at 70% 60%, rgba(56, 189, 248, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 20% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 30%),
-                radial-gradient(white 1.2px, transparent 0),
-                radial-gradient(rgba(56,189,248,0.7) 1px, transparent 0);
-            background-size: 100% 100%, 100% 100%, 100% 100%, 50px 50px, 35px 35px;
-            opacity: 0.8;
+                radial-gradient(circle at 25% 25%, rgba(147, 51, 234, 0.22) 0%, transparent 40%),
+                radial-gradient(circle at 75% 75%, rgba(56, 189, 248, 0.18) 0%, transparent 45%),
+                #05070e;
             z-index: 1;
         }
-        .space-bg.animating {
-            animation: scrollSpace 6s linear infinite;
-        }
-        @keyframes scrollSpace {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(33.33%); }
-        }
 
-        /* Planet Elements floating in background */
+        /* Isolated Glowing Stars */
+        .star {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50%;
+            z-index: 2;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+        .star-1 { width: 3px; height: 3px; top: 18%; left: 20%; box-shadow: 0 0 6px #fff; }
+        .star-2 { width: 2px; height: 2px; top: 65%; left: 82%; box-shadow: 0 0 4px #fff; }
+        .star-3 { width: 4px; height: 4px; top: 30%; left: 78%; box-shadow: 0 0 8px #fff; }
+
+        /* Floating Planets */
         .planet {
             position: absolute;
             border-radius: 50%;
             z-index: 2;
-            opacity: 0.6;
+            opacity: 0.65;
             pointer-events: none;
         }
         .planet-1 {
-            width: 80px;
-            height: 80px;
+            width: 75px;
+            height: 75px;
             background: radial-gradient(circle at 30% 30%, #f97316, #7c2d12);
-            top: 15%;
-            right: 10%;
+            top: 12%;
+            right: 12%;
             box-shadow: inset -10px -10px 20px rgba(0,0,0,0.8), 0 0 15px rgba(249, 115, 22, 0.4);
         }
         .planet-2 {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             background: radial-gradient(circle at 30% 30%, #38bdf8, #0369a1);
-            top: 45%;
-            left: 8%;
+            bottom: 25%;
+            left: 10%;
             box-shadow: inset -8px -8px 15px rgba(0,0,0,0.8), 0 0 10px rgba(56, 189, 248, 0.3);
         }
 
@@ -170,5 +179,36 @@
             font-weight: bold;
         }
 
-        /* Rocket
+        /* Rocket Flight Zone starting at Bottom-Left */
+        .rocket-flight-zone {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: transform 0.1s ease-out;
+        }
+        .rocket-svg-container {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.6));
+        }
 
+        /* Cockpit Cat Image */
+        .rocket-cat-img {
+            position: absolute;
+            top: 34px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #38bdf8;
+            z-index: 15;
+            background: #0f172a;
+            
