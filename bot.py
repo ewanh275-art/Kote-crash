@@ -99,14 +99,16 @@ Tap below to open the live visual rocket game!"""
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    webapp_url = "https://ewanh275-art.github.io/Kote-crash/"
+    # Replace Kote_crash_bot with your exact Telegram bot username
+    bot_username = "Kote_crash_bot" 
+    direct_link = f"https://t.me/{bot_username}"
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🚀 Launch Visual Crash Game", web_app=WebAppInfo(url=webapp_url))]
+        [InlineKeyboardButton("🚀 Launch Visual Crash Game", url=direct_link)]
     ])
     
     await update.message.reply_text(
-        "🚀 <b>Kote Visual Rocket Game Ready!</b>\n\nClick below to open the fluid 60fps web app, watch the rocket lift off, and cash out instantly!",
+        "🚀 <b>Kote Visual Rocket Game Ready!</b>\n\nClick below to open the web app, watch the rocket lift off, and cash out instantly!",
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -132,3 +134,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
