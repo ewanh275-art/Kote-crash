@@ -99,39 +99,10 @@ Tap below to open the live visual rocket game!"""
     await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 async def rocket_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Replace Kote_crash_bot with your exact Telegram bot username
-    bot_username = "Kote_crash_bot" 
+    # Updated with your actual bot username @KoteCrashBot
+    bot_username = "KoteCrashBot" 
     direct_link = f"https://t.me/{bot_username}"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 Launch Visual Crash Game", url=direct_link)]
     ])
-    
-    await update.message.reply_text(
-        "🚀 <b>Kote Visual Rocket Game Ready!</b>\n\nClick below to open the web app, watch the rocket lift off, and cash out instantly!",
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-
-# --- 3. MAIN APPLICATION STARTUP ---
-def main():
-    TOKEN = os.environ.get("BOT_TOKEN")
-    if not TOKEN:
-        logger.error("CRITICAL: No BOT_TOKEN environment variable found. Please configure it in Render settings.")
-        return
-
-    # Start health check & API server for Render web service requirement
-    server_thread = threading.Thread(target=run_server, daemon=True)
-    server_thread.start()
-
-    application = ApplicationBuilder().token(TOKEN).build()
-
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("rocket", rocket_command))
-
-    logger.info("Starting Telegram bot polling...")
-    application.run_polling()
-
-if __name__ == "__main__":
-    main()
-
