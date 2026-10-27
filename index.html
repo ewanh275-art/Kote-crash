@@ -401,8 +401,8 @@
     </div>
 
     <script>
-        // REPLACE WITH YOUR RENDER BACKEND URL (No trailing slash)
-        const BACKEND_URL = "https://YOUR-RENDER-APP-NAME.onrender.com";
+        // REPLACE WITH YOUR ACTUAL RENDER BACKEND URL (No trailing slash)
+        const BACKEND_URL = "https://kote-crash.onrender.com";
 
         let gameState = 'WAITING';
         let balance = 10000;
@@ -627,7 +627,7 @@
 
         window.shareResultToChat = function() {
             if (tg && typeof tg.openTelegramLink === 'function') {
-                const shareUrl = `https://t.me/share/url?url=https://t.me/Kote_crash_bot&text=${encodeURIComponent(lastResultText)}`;
+                const shareUrl = `https://t.me/share/url?url=https://t.me/KoteCrashBot&text=${encodeURIComponent(lastResultText)}`;
                 tg.openTelegramLink(shareUrl);
             } else {
                 alert(lastResultText);
@@ -676,3 +676,4 @@
     </script>
 </body>
 </html>
+
